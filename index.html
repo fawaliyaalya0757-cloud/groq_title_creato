@@ -498,7 +498,7 @@ body::before {
     <div class="sid-section">
       <div class="sid-label">// Prompt Template</div>
       <div class="field">
-        <textarea id="promptTpl" rows="3" style="font-size:11px">Kamu copywriter SEO. Buat {jumlah} judul {platform} yang {tone} untuk keyword: "{keyword}". Balas HANYA JSON array of strings, tanpa preamble, tanpa backtick.</textarea>
+        <textarea id="promptTpl" rows="3" style="font-size:11px">Kamu copywriter SEO. Buat {jumlah} judul {platform} yang {tone} untuk keyword: "{keyword}". Balas HANYA daftar bernomor, satu judul per baris, format: "1. judul", tanpa penjelasan tambahan.</textarea>
       </div>
       <button class="exp-btn" onclick="togglePreview()" style="font-size:9px;padding:4px 10px">Preview prompt</button>
       <div class="prompt-preview" id="promptPreview"></div>
@@ -747,13 +747,19 @@ async function streamTitles(apiKey, kw, kwIdx, container){
   }
   streamEl.remove();
 
-  const cleaned = raw.replace(/```json|```/g,'').trim();
+  const cleaned = raw.replace(/```[a-z]*|```/g,'').trim();
   let titles = [];
-  try { titles = JSON.parse(cleaned); } catch {
-    const matches = cleaned.match(/"([^"]+)"/g);
-    if(matches) titles = matches.map(m=>m.replace(/"/g,''));
-    else throw new Error('Gagal parse JSON dari respons Groq');
+  // Coba parse JSON dulu (kalau model tetap balas JSON)
+  try {
+    const parsed = JSON.parse(cleaned);
+    if(Array.isArray(parsed)) titles = parsed.map(String);
+  } catch {
+    // Parse plain text: "1. judul", "- judul", atau baris biasa
+    titles = cleaned.split('\n')
+      .map(l => l.replace(/^\s*[\d\-\*\u2022]+[\.\)]\s*/, '').trim())
+      .filter(Boolean);
   }
+  if(!titles.length) throw new Error('Tidak ada judul ditemukan dari respons Groq');
   titles = titles.filter(t=>typeof t==='string'&&t.trim());
   titles.forEach((t, ti)=>{
     const item = document.createElement('div');
