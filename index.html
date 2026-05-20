@@ -498,7 +498,9 @@ body::before {
     <div class="sid-section">
       <div class="sid-label">// Prompt Template</div>
       <div class="field">
-        <textarea id="promptTpl" rows="3" style="font-size:11px">Kamu copywriter SEO. Buat {jumlah} judul {platform} yang {tone} untuk keyword: "{keyword}". Balas HANYA daftar bernomor, satu judul per baris, format: "1. judul", tanpa penjelasan tambahan.</textarea>
+        <textarea id="promptTpl" rows="3" style="font-size:11px">Generate exactly {count} SEO-friendly, curiosity-driven titles for '{keyword}'.
+Rules: each title 55-70 characters, clear US English, no numbering, no bullet points, one title per line.
+Return only titles.</textarea>
       </div>
       <button class="exp-btn" onclick="togglePreview()" style="font-size:9px;padding:4px 10px">Preview prompt</button>
       <div class="prompt-preview" id="promptPreview"></div>
@@ -587,6 +589,7 @@ function getKeywords(){
 function buildPrompt(kw){
   return document.getElementById('promptTpl').value
     .replace('{keyword}', kw)
+    .replace('{count}', document.getElementById('perKw').value)
     .replace('{jumlah}', document.getElementById('perKw').value)
     .replace('{platform}', document.getElementById('platform').value)
     .replace('{tone}', document.getElementById('tone').value);
