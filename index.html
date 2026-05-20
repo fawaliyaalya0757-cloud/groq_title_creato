@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TITLE.GEN — Groq Title Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050708;
+  --bg2: #080b0e;
+  --bg3: #0c1014;
+  --border: #0f1a20;
+  --border2: #162430;
+  --border3: #1e3040;
+  --green: #00ff88;
+  --green2: #00cc66;
+  --green3: #003a1a;
+  --green-faint: #00ff8808;
+  --cyan: #00e5ff;
+  --cyan2: #009ab5;
+  --amber: #ffaa00;
+  --red: #ff3355;
+  --text: #c8ddc8;
+  --text2: #5a7a6a;
+  --text3: #2a3a2a;
+  --mono: 'Share Tech Mono', monospace;
+  --display: 'VT323', monospace;
+  --sans: 'Rajdhani', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+/* scanlines */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* grid noise bg */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+.app {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border2);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--green3); }
+
+.sid-header {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--bg3);
+}
+.logo {
+  font-family: var(--display);
+  font-size: 28px;
+  color: var(--green);
+  letter-spacing: 3px;
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(0,255,136,0.3);
+}
+.logo-sub {
+  font-size: 9px;
+  color: var(--text2);
+  letter-spacing: 3px;
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
+.sid-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sid-label {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* form elements */
+.field { margin-bottom: 10px; }
+.field:last-child { margin-bottom: 0; }
+.field-label {
+  font-size: 9px;
+  color: var(--text2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.field input[type=text],
+.field input[type=password],
+.field textarea,
+.field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--green2);
+  box-shadow: 0 0 0 1px rgba(0,255,136,0.1);
+}
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a7a6a'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-color: var(--bg);
+  padding-right: 26px;
+  cursor: pointer;
+}
+
+.range-wrap { display: flex; align-items: center; gap: 8px; }
+.range-wrap input[type=range] {
+  flex: 1; height: 3px;
+  -webkit-appearance: none;
+  background: var(--border2);
+  border: none; padding: 0;
+  cursor: pointer;
+}
+.range-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: var(--green);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0,255,136,0.4);
+}
+.range-val {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--amber);
+  min-width: 28px;
+  text-align: right;
+  line-height: 1;
+}
+
+.run-btn {
+  width: 100%;
+  padding: 11px;
+  background: var(--green3);
+  border: 1px solid var(--green2);
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 4px;
+}
+.run-btn:hover { background: rgba(0,255,136,0.1); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+.run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.run-btn.running { color: var(--amber); border-color: var(--amber); animation: pulse-btn 1s infinite; }
+@keyframes pulse-btn { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+.stop-btn {
+  width: 100%; padding: 8px;
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red); font-family: var(--mono);
+  font-size: 11px; letter-spacing: 2px;
+  cursor: pointer; text-transform: uppercase;
+  display: none; margin-top: 6px;
+  transition: all 0.15s;
+}
+.stop-btn:hover { background: rgba(255,51,85,0.1); }
+
+/* stats */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+.stat-cell { background: var(--bg2); padding: 10px 10px; text-align: center; }
+.stat-num {
+  font-family: var(--display);
+  font-size: 26px;
+  color: var(--cyan);
+  line-height: 1;
+}
+.stat-num.ok { color: var(--green); }
+.stat-num.err { color: var(--red); }
+.stat-num.amber { color: var(--amber); }
+.stat-lbl { font-size: 8px; color: var(--text3); letter-spacing: 1px; margin-top: 2px; }
+
+/* progress bar */
+.prog-wrap {
+  height: 3px;
+  background: var(--border2);
+  margin: 0 16px 0;
+  overflow: hidden;
+}
+.prog-bar {
+  height: 100%;
+  background: var(--green);
+  width: 0%;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 8px rgba(0,255,136,0.5);
+}
+
+.status-strip {
+  padding: 6px 16px;
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 1px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+  display: flex; align-items: center; gap: 6px;
+}
+.dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+}
+.dot.busy { background: var(--amber); animation: blink-dot 0.5s infinite; }
+.dot.err { background: var(--red); animation: none; }
+@keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── MAIN ── */
+.main { display: flex; flex-direction: column; min-width: 0; }
+
+.topbar {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--bg3);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-title {
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--green);
+  letter-spacing: 3px;
+}
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.badge-tag {
+  font-size: 9px;
+  padding: 2px 8px;
+  border: 1px solid var(--border3);
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+.badge-tag.active { border-color: var(--green3); color: var(--green2); }
+
+.content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* error */
+.err-msg {
+  display: none;
+  padding: 8px 12px;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-size: 12px;
+  margin-bottom: 12px;
+  background: rgba(255,51,85,0.05);
+}
+
+/* prompt preview */
+.prompt-preview {
+  display: none;
+  padding: 8px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-left: 2px solid var(--cyan2);
+  font-size: 11px;
+  color: var(--text2);
+  white-space: pre-wrap;
+  margin-top: 6px;
+  max-height: 80px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* results */
+.results-section { display: none; }
+
+.kw-block { margin-bottom: 16px; animation: fadein 0.25s ease; }
+@keyframes fadein { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+.kw-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 6px;
+}
+.kw-name {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  flex: 1;
+}
+.kw-badge {
+  font-size: 9px;
+  padding: 2px 8px;
+  border: 1px solid var(--border3);
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+.kw-badge.ok { border-color: var(--green3); color: var(--green2); }
+.kw-badge.generating { border-color: rgba(255,170,0,0.3); color: var(--amber); }
+.kw-badge.error { border-color: rgba(255,51,85,0.3); color: var(--red); }
+
+.title-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  animation: fadein 0.2s ease;
+}
+.title-item:last-child { border-bottom: none; }
+.title-num { font-size: 10px; color: var(--text3); min-width: 22px; padding-top: 1px; }
+.title-text {
+  flex: 1;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.5;
+}
+.copy-btn {
+  background: none; border: none;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text3); cursor: pointer;
+  padding: 2px 6px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+}
+.copy-btn:hover { color: var(--green); }
+
+.streaming-line {
+  font-size: 11px;
+  color: var(--text2);
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 4px 0;
+  font-family: var(--mono);
+}
+.cursor-blink {
+  display: inline-block;
+  width: 7px; height: 12px;
+  background: var(--green);
+  vertical-align: middle;
+  margin-left: 3px;
+  animation: blink-cur 0.7s infinite;
+}
+@keyframes blink-cur { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.status-msg {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.export-row {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border2);
+}
+.exp-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border3);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.exp-btn:hover { border-color: var(--green2); color: var(--green); }
+
+.err-line {
+  font-size: 11px; color: var(--red);
+  padding: 4px 0;
+}
+
+@media (max-width: 700px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sid-header">
+      <div class="logo">TITLE.GEN</div>
+      <div class="logo-sub">Groq Powered — Title Creator Pro</div>
+    </div>
+
+    <div class="sid-section">
+      <div class="sid-label">// API Key</div>
+      <div class="field">
+        <input type="password" id="apiKey" placeholder="gsk_..." style="font-size:11px;letter-spacing:1px"/>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Dapatkan di <a href="https://console.groq.com/keys" target="_blank" style="color:var(--cyan2)">console.groq.com</a></div>
+      </div>
+    </div>
+
+    <div class="sid-section">
+      <div class="sid-label">// Keyword Input</div>
+      <div class="field">
+        <textarea id="kwInput" rows="5" placeholder="tips produktivitas mahasiswa&#10;cara belajar efektif&#10;manajemen waktu pelajar"></textarea>
+        <div style="display:flex;gap:8px;margin-top:5px;align-items:center">
+          <span style="font-size:10px;color:var(--text2)" id="kwCount">0 keyword</span>
+          <span style="font-size:10px;color:var(--amber)" id="totalTitles">0 judul</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sid-section">
+      <div class="sid-label">// Config</div>
+      <div class="field">
+        <div class="field-label">Judul per keyword</div>
+        <div class="range-wrap">
+          <input type="range" id="perKw" min="1" max="30" value="5" oninput="updateCalc()">
+          <span class="range-val" id="perKwVal">5</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Platform</div>
+        <select id="platform">
+          <option>YouTube</option>
+          <option>Blog / artikel</option>
+          <option>Instagram</option>
+          <option>TikTok</option>
+          <option>Podcast</option>
+          <option>LinkedIn</option>
+          <option>Twitter / X</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">Tone</div>
+        <select id="tone">
+          <option value="engaging & clickbait ringan">Clickbait ringan</option>
+          <option value="profesional">Profesional</option>
+          <option value="santai & kasual">Santai</option>
+          <option value="edukatif">Edukatif</option>
+          <option value="viral & hype">Viral / hype</option>
+          <option value="storytelling">Storytelling</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">Model</div>
+        <select id="model">
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="llama-3.1-8b-instant">Llama 3.1 8B (cepat)</option>
+          <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+          <option value="gemma2-9b-it">Gemma2 9B</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sid-section">
+      <div class="sid-label">// Prompt Template</div>
+      <div class="field">
+        <textarea id="promptTpl" rows="3" style="font-size:11px">Kamu copywriter SEO. Buat {jumlah} judul {platform} yang {tone} untuk keyword: "{keyword}". Balas HANYA JSON array of strings, tanpa preamble, tanpa backtick.</textarea>
+      </div>
+      <button class="exp-btn" onclick="togglePreview()" style="font-size:9px;padding:4px 10px">Preview prompt</button>
+      <div class="prompt-preview" id="promptPreview"></div>
+    </div>
+
+    <div class="sid-section" style="border-bottom:none">
+      <button class="run-btn" id="startBtn" onclick="startGenerate()">
+        <span>▶</span> <span id="runBtnText">JALANKAN</span>
+      </button>
+      <button class="stop-btn" id="stopBtn" onclick="stopGenerate()">■ STOP</button>
+    </div>
+
+    <div style="padding:6px 0">
+      <div class="prog-wrap"><div class="prog-bar" id="progBar"></div></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-cell"><div class="stat-num amber" id="cntKw">0</div><div class="stat-lbl">KEYWORD</div></div>
+      <div class="stat-cell"><div class="stat-num ok" id="cntDone">0</div><div class="stat-lbl">SELESAI</div></div>
+      <div class="stat-cell"><div class="stat-num" id="cntTitles">0</div><div class="stat-lbl">JUDUL</div></div>
+      <div class="stat-cell"><div class="stat-num err" id="cntErr">0</div><div class="stat-lbl">ERROR</div></div>
+    </div>
+
+    <div class="status-strip">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusTxt" style="letter-spacing:1px">IDLE</span>
+      <span style="margin-left:auto;color:var(--text3)" id="cntTime">0s</span>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">// OUTPUT_STREAM</div>
+      <div class="topbar-right">
+        <span class="badge-tag active">GROQ API</span>
+        <span class="badge-tag" id="modelBadge">LLAMA-3.3-70B</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="err-msg" id="errBox"></div>
+
+      <div class="results-section" id="resultsSection">
+        <div class="status-msg" id="statusMsg"></div>
+        <div class="export-row" id="exportRow" style="display:none">
+          <button class="exp-btn" onclick="clearResults()">✕ CLEAR</button>
+          <button class="exp-btn" id="dlTxtBtn" style="display:none" onclick="downloadTxt()">↓ TXT</button>
+          <button class="exp-btn" id="dlHtmlBtn" style="display:none" onclick="downloadHtml()">↓ HTML</button>
+          <button class="exp-btn" id="copyAllBtn" style="display:none" onclick="copyAllTitles()">⊕ SALIN SEMUA</button>
+        </div>
+        <div id="titlesList"></div>
+      </div>
+
+      <div id="emptyState" style="padding:40px 0;text-align:center;color:var(--text3)">
+        <div style="font-family:var(--display);font-size:48px;color:var(--border3);letter-spacing:4px">READY</div>
+        <div style="font-size:10px;letter-spacing:3px;margin-top:8px">Masukkan keyword & API key, lalu klik JALANKAN</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allResults=[], stopFlag=false, controller=null, startTime=0, timerInterval=null;
+
+document.getElementById('kwInput').addEventListener('input', updateCalc);
+document.getElementById('perKw').addEventListener('input', updateCalc);
+document.getElementById('model').addEventListener('change', function(){
+  document.getElementById('modelBadge').textContent = this.value.split('-').slice(0,3).join('-').toUpperCase();
+});
+updateCalc();
+
+function updateCalc(){
+  const kws = getKeywords();
+  const per = parseInt(document.getElementById('perKw').value)||5;
+  document.getElementById('perKwVal').textContent = per;
+  document.getElementById('kwCount').textContent = kws.length + ' keyword';
+  document.getElementById('totalTitles').textContent = (kws.length*per) + ' judul';
+}
+
+function getKeywords(){
+  return document.getElementById('kwInput').value.split('\n').map(s=>s.trim()).filter(Boolean);
+}
+
+function buildPrompt(kw){
+  return document.getElementById('promptTpl').value
+    .replace('{keyword}', kw)
+    .replace('{jumlah}', document.getElementById('perKw').value)
+    .replace('{platform}', document.getElementById('platform').value)
+    .replace('{tone}', document.getElementById('tone').value);
+}
+
+function togglePreview(){
+  const p = document.getElementById('promptPreview');
+  const kws = getKeywords();
+  if(p.style.display === 'none' || !p.style.display){
+    p.style.display = 'block';
+    p.textContent = buildPrompt(kws[0] || '[keyword]');
+  } else { p.style.display = 'none'; }
+}
+
+function setErr(msg){
+  const b = document.getElementById('errBox');
+  if(msg){ b.textContent = msg; b.style.display = 'block'; }
+  else { b.style.display = 'none'; }
+}
+
+function setStatus(txt, state='idle'){
+  document.getElementById('statusTxt').textContent = txt;
+  const dot = document.getElementById('statusDot');
+  dot.className = 'dot' + (state==='busy'?' busy':state==='err'?' err':'');
+}
+
+function updateCounters(kwTotal, done, titles, errs){
+  document.getElementById('cntKw').textContent = kwTotal;
+  document.getElementById('cntDone').textContent = done;
+  document.getElementById('cntTitles').textContent = titles;
+  document.getElementById('cntErr').textContent = errs;
+  const pct = kwTotal > 0 ? Math.round((done/kwTotal)*100) : 0;
+  document.getElementById('progBar').style.width = pct + '%';
+}
+
+async function startGenerate(){
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if(!apiKey){ setErr('Masukkan Groq API Key dulu!'); return; }
+  const kws = getKeywords();
+  if(!kws.length){ setErr('Masukkan minimal 1 keyword!'); return; }
+  setErr('');
+  stopFlag = false;
+  allResults = [];
+  document.getElementById('titlesList').innerHTML = '';
+  document.getElementById('resultsSection').style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('startBtn').classList.add('running');
+  document.getElementById('runBtnText').textContent = 'BERJALAN...';
+  document.getElementById('stopBtn').style.display = 'block';
+  document.getElementById('exportRow').style.display = 'none';
+  document.getElementById('dlTxtBtn').style.display = 'none';
+  document.getElementById('dlHtmlBtn').style.display = 'none';
+  document.getElementById('copyAllBtn').style.display = 'none';
+
+  startTime = Date.now();
+  timerInterval = setInterval(()=>{
+    document.getElementById('cntTime').textContent = Math.round((Date.now()-startTime)/1000) + 's';
+  }, 500);
+
+  setStatus('PROCESSING', 'busy');
+  let totalTitles = 0, errCount = 0;
+  updateCounters(kws.length, 0, 0, 0);
+
+  for(let i = 0; i < kws.length; i++){
+    if(stopFlag) break;
+    const kw = kws[i];
+    document.getElementById('statusMsg').innerHTML = `[${i+1}/${kws.length}] Processing: <span style="color:var(--cyan)">${kw}</span>`;
+
+    const kwResult = {kw, titles:[], err:null};
+    allResults.push(kwResult);
+
+    const block = document.createElement('div');
+    block.className = 'kw-block';
+    block.innerHTML = `
+      <div class="kw-head">
+        <span class="kw-name">${escHtml(kw)}</span>
+        <span class="kw-badge generating" id="kw-badge-${i}">generating...</span>
+      </div>
+    `;
+    document.getElementById('titlesList').appendChild(block);
+    const streamDiv = document.createElement('div');
+    streamDiv.id = 'stream-' + i;
+    block.appendChild(streamDiv);
+
+    try {
+      const titles = await streamTitles(apiKey, kw, i, streamDiv);
+      kwResult.titles = titles;
+      totalTitles += titles.length;
+      const badge = document.getElementById('kw-badge-'+i);
+      if(badge){ badge.className = 'kw-badge ok'; badge.textContent = titles.length + ' judul'; }
+    } catch(e) {
+      errCount++;
+      kwResult.err = e.message;
+      const badge = document.getElementById('kw-badge-'+i);
+      if(badge){ badge.className = 'kw-badge error'; badge.textContent = 'error'; }
+      const errEl = document.createElement('div');
+      errEl.className = 'err-line';
+      errEl.textContent = 'Error: ' + e.message;
+      streamDiv.appendChild(errEl);
+    }
+    updateCounters(kws.length, i+1, totalTitles, errCount);
+  }
+
+  clearInterval(timerInterval);
+  document.getElementById('statusMsg').textContent = stopFlag ? '■ Dihentikan.' : '✓ Selesai!';
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('startBtn').classList.remove('running');
+  document.getElementById('runBtnText').textContent = 'JALANKAN';
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('exportRow').style.display = 'flex';
+  if(totalTitles > 0){
+    document.getElementById('dlTxtBtn').style.display = 'inline-block';
+    document.getElementById('dlHtmlBtn').style.display = 'inline-block';
+    document.getElementById('copyAllBtn').style.display = 'inline-block';
+  }
+  setStatus(stopFlag ? 'STOPPED' : 'DONE', stopFlag ? 'err' : 'idle');
+}
+
+async function streamTitles(apiKey, kw, kwIdx, container){
+  const model = document.getElementById('model').value;
+  const prompt = buildPrompt(kw);
+  controller = new AbortController();
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    body: JSON.stringify({model, messages:[{role:'user',content:prompt}], stream:true, max_tokens:1500, temperature:0.8}),
+    signal: controller.signal
+  });
+  if(!resp.ok){
+    const j = await resp.json().catch(()=>({}));
+    throw new Error(j.error?.message || 'HTTP '+resp.status);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '', raw = '';
+  const streamEl = document.createElement('div');
+  streamEl.className = 'streaming-line';
+  container.appendChild(streamEl);
+
+  while(true){
+    const {done, value} = await reader.read();
+    if(done || stopFlag) break;
+    buffer += decoder.decode(value, {stream:true});
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for(const line of lines){
+      if(!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if(data === '[DONE]') break;
+      try {
+        const j = JSON.parse(data);
+        const delta = j.choices?.[0]?.delta?.content || '';
+        raw += delta;
+        streamEl.innerHTML = escHtml(raw) + '<span class="cursor-blink"></span>';
+      } catch {}
+    }
+  }
+  streamEl.remove();
+
+  const cleaned = raw.replace(/```json|```/g,'').trim();
+  let titles = [];
+  try { titles = JSON.parse(cleaned); } catch {
+    const matches = cleaned.match(/"([^"]+)"/g);
+    if(matches) titles = matches.map(m=>m.replace(/"/g,''));
+    else throw new Error('Gagal parse JSON dari respons Groq');
+  }
+  titles = titles.filter(t=>typeof t==='string'&&t.trim());
+  titles.forEach((t, ti)=>{
+    const item = document.createElement('div');
+    item.className = 'title-item';
+    item.innerHTML = `<span class="title-num">${ti+1}.</span><span class="title-text">${escHtml(t)}</span><button class="copy-btn" onclick="copyOne(this,'${escAttr(t)}')">COPY</button>`;
+    container.appendChild(item);
+  });
+  return titles;
+}
+
+function stopGenerate(){
+  stopFlag = true;
+  if(controller) controller.abort();
+  clearInterval(timerInterval);
+}
+
+function clearResults(){
+  allResults = [];
+  document.getElementById('titlesList').innerHTML = '';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('exportRow').style.display = 'none';
+  setErr('');
+  setStatus('IDLE');
+  updateCounters(0,0,0,0);
+  document.getElementById('progBar').style.width = '0%';
+  document.getElementById('cntTime').textContent = '0s';
+}
+
+function copyOne(btn, text){
+  navigator.clipboard.writeText(text);
+  btn.textContent = '✓ OK';
+  setTimeout(()=>{ btn.textContent = 'COPY'; }, 1500);
+}
+
+function copyAllTitles(){
+  const lines = [];
+  allResults.forEach(r=>{
+    if(r.titles.length){ lines.push('=== '+r.kw+' ==='); r.titles.forEach((t,i)=>lines.push((i+1)+'. '+t)); lines.push(''); }
+  });
+  navigator.clipboard.writeText(lines.join('\n'));
+}
+
+function downloadTxt(){
+  const lines = ['TITLE.GEN — Hasil Generate','Generated: '+new Date().toLocaleString('id-ID'),'',''];
+  allResults.forEach(r=>{
+    lines.push('=== '+r.kw+' ===');
+    if(r.err){ lines.push('ERROR: '+r.err); }
+    else { r.titles.forEach((t,i)=>lines.push((i+1)+'. '+t)); }
+    lines.push('');
+  });
+  dl(new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'}), 'titles-'+Date.now()+'.txt');
+}
+
+function downloadHtml(){
+  const total = allResults.reduce((a,r)=>a+r.titles.length, 0);
+  const rows = allResults.map(r=>{
+    const titleRows = r.err
+      ? `<tr><td colspan="2" style="color:#ff3355;padding:8px">Error: ${escHtml(r.err)}</td></tr>`
+      : r.titles.map((t,i)=>`<tr><td style="color:#5a7a6a;padding:6px 8px;width:32px;text-align:right;font-family:monospace">${i+1}.</td><td style="padding:6px 8px">${escHtml(t)}</td></tr>`).join('');
+    return `<div style="margin-bottom:16px"><div style="padding:8px 12px;background:#0c1014;border-left:2px solid #00cc66;font-weight:600;font-size:14px;margin-bottom:2px">${escHtml(r.kw)} <span style="font-size:11px;color:#5a7a6a">${r.titles.length} judul</span></div><table style="width:100%;border-collapse:collapse">${titleRows}</table></div>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>TITLE.GEN — Hasil</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Share Tech Mono',monospace;background:#050708;color:#c8ddc8;padding:32px;font-size:13px}h1{font-size:28px;color:#00ff88;letter-spacing:4px;margin-bottom:4px}.meta{font-size:11px;color:#5a7a6a;margin-bottom:20px}.stats{display:flex;gap:10px;margin-bottom:24px}.stat{background:#080b0e;border:1px solid #162430;padding:10px 14px;text-align:center}.stat-val{font-size:24px;color:#00e5ff}.stat-label{font-size:9px;color:#2a3a2a;margin-top:2px}</style></head><body><h1>TITLE.GEN</h1><div class="meta">Platform: ${escHtml(document.getElementById('platform').value)} · Tone: ${escHtml(document.getElementById('tone').value)} · ${new Date().toLocaleString('id-ID')}</div><div class="stats"><div class="stat"><div class="stat-val">${allResults.length}</div><div class="stat-label">KEYWORD</div></div><div class="stat"><div class="stat-val">${total}</div><div class="stat-label">JUDUL</div></div></div>${rows}</body></html>`;
+  dl(new Blob([html], {type:'text/html;charset=utf-8'}), 'titles-'+Date.now()+'.html');
+}
+
+function dl(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s){ return escHtml(s).replace(/'/g,'&#39;'); }
+</script>
+</body>
+</html>
